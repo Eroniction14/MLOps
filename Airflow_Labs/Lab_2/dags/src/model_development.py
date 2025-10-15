@@ -1,109 +1,90 @@
-# File: src/model_development.py
 import os
 import pickle
 import pandas as pd
-from sklearn.compose import make_column_transformer
-from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
 
-WORKING_DIR = "/opt/airflow/working_data"
-MODEL_DIR = "/opt/airflow/model"
-os.makedirs(WORKING_DIR, exist_ok=True)
-os.makedirs(MODEL_DIR, exist_ok=True)
-
-def load_data() -> str:
+# Load data from a CSV file
+def load_data():
     """
-    Load CSV and persist raw dataframe to a pickle file.
-    Returns path to saved file.
+    Loads data from a CSV file, serializes it, and returns the serialized data.
+
+    Returns:
+        bytes: Serialized data.
     """
-    csv_path = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "data",
-        "advertising.csv",
-    )
-    df = pd.read_csv(csv_path)
+    data = pd.read_csv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data/heart.csv"))
+    return data
 
-    out_path = os.path.join(WORKING_DIR, "raw.pkl")
-    with open(out_path, "wb") as f:
-        pickle.dump(df, f)
-    return out_path
-
-def data_preprocessing(file_path: str) -> str:
-    """
-    Load dataframe, split, scale, and save (X_train, X_test, y_train, y_test) to pickle.
-    Returns path to saved file.
-    """
-    with open(file_path, "rb") as f:
-        df = pickle.load(f)
-
-    X = df.drop(
-        ["Timestamp", "Clicked on Ad", "Ad Topic Line", "Country", "City"],
-        axis=1,
-    )
-    y = df["Clicked on Ad"]
-
+# Preprocess the data
+def data_preprocessing(data):
+    y = data['target']
+    X = data.drop(columns=['target'])
+    
+    numeric_cols = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak']
+    categorical_cols = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'ca', 'thal']
+    
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42
+        X, y, test_size=0.3, random_state=42, stratify=y
     )
-
-    num_columns = [
-        "Daily Time Spent on Site",
-        "Age",
-        "Area Income",
-        "Daily Internet Usage",
-        "Male",
-    ]
-
-    ct = make_column_transformer(
-        (MinMaxScaler(), num_columns),
-        (StandardScaler(), num_columns),
-        remainder="passthrough",
+    
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=True), categorical_cols),
+        ],
+        remainder='passthrough'  # keeps numeric columns as-is (no scaling needed for trees)
     )
+    
+    X_train = preprocessor.fit_transform(X_train)
+    X_test = preprocessor.transform(X_test)
+    
+    return (X_train, X_test, y_train.values, y_test.values, preprocessor)
 
-    X_train_tr = ct.fit_transform(X_train)
-    X_test_tr = ct.transform(X_test)
+# Build and save a logistic regression model
+def build_model(data, filename):
+    X_train, X_test, y_train, y_test, _ = data
+    
+    rf = RandomForestClassifier(
+        n_estimators=300,
+        max_depth=None,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        n_jobs=-1,
+        random_state=42
+    )
+    rf.fit(X_train, y_train)
 
-    out_path = os.path.join(WORKING_DIR, "preprocessed.pkl")
-    with open(out_path, "wb") as f:
-        pickle.dump((X_train_tr, X_test_tr, y_train.values, y_test.values), f)
-    return out_path
+    # Ensure the directory exists
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "model")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    output_path = os.path.join(output_dir, filename)
+    
+    # Save the trained model to a file
+    with open(output_path, 'wb') as f:
+        pickle.dump(rf, f)
 
-def separate_data_outputs(file_path: str) -> str:
-    """
-    Passthrough; kept so the DAG composes cleanly.
-    """
-    return file_path
 
-def build_model(file_path: str, filename: str) -> str:
-    """
-    Train LR model and save to MODEL_DIR/filename. Returns model path.
-    """
-    with open(file_path, "rb") as f:
-        X_train, X_test, y_train, y_test = pickle.load(f)
+# Load a saved logistic regression model and evaluate it
+def load_model(data, filename):
+    X_train, X_test, y_train, y_test, _ = data
+    output_path = os.path.join(os.path.dirname(__file__), "../model", filename)
+    
+    with open(output_path, 'rb') as f:
+        loaded_model = pickle.load(f)
 
-    model = LogisticRegression()
-    model.fit(X_train, y_train)
+    # Make predictions on the test data and print the model's score
+    score = loaded_model.score(X_test, y_test)
+    print(f"RandomForest accuracy on test data: {score:.4f}")
 
-    model_path = os.path.join(MODEL_DIR, filename)
-    with open(model_path, "wb") as f:
-        pickle.dump(model, f)
+    predictions = loaded_model.predict(X_test)
+    return predictions[0]
 
-    return model_path
 
-def load_model(file_path: str, filename: str) -> int:
-    """
-    Load saved model and test set, print score, and return first prediction as int.
-    """
-    with open(file_path, "rb") as f:
-        X_train, X_test, y_train, y_test = pickle.load(f)
-
-    model_path = os.path.join(MODEL_DIR, filename)
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
-
-    score = model.score(X_test, y_test)
-    print(f"Model score on test data: {score}")
-
-    pred = model.predict(X_test)
-    return int(pred[0])
+if __name__ == '__main__':
+    x = load_data()
+    prepped = data_preprocessing(x)
+    build_model(prepped, 'rfmodel.sav')
+    _ = load_model(prepped, 'rfmodel.sav')
