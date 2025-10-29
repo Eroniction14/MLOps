@@ -30,3 +30,16 @@ stages:
     - models/metrics_v2.json
     - models/scaler_v2.pkl
     - models/spotify_model_v2.pkl
+  compare_models:
+    cmd: python scripts/compare_models.py
+    deps:
+    - models/metrics_v1.json
+    - models/metrics_v2.json
+    - scripts/compare_models.py
+    outs:
+    - models/comparison.txt
+  view_results:
+    cmd: python scripts/view_results.py
+    deps:
+    - models/comparison.txt
+    - scripts/view_results.py
