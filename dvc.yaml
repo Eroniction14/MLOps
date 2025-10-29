@@ -13,3 +13,11 @@ stages:
     - scripts/feature_engineering.py
     outs:
     - data/spotify_featured.csv
+  train_model_v1:
+    cmd: python scripts/train_model_v1.py
+    deps:
+    - data/spotify_featured.csv
+    - scripts/train_model_v1.py
+    outs:
+    - models/metrics_v1.json
+    - models/spotify_model_v1.pkl
