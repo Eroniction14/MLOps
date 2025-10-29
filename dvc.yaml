@@ -1,0 +1,8 @@
+stages:
+  data_cleaning:
+    cmd: python scripts/data_cleaning.py
+    deps:
+    - data/spotify_songs.csv
+    - scripts/data_cleaning.py
+    outs:
+    - data/spotify_cleaned.csv
