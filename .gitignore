@@ -1,0 +1,22 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Logs
+*.log
+logs/
+
+# Airflow
+scheduler/latest/
+
+# Backups and temp files
+*_backup/
+temp_backup/
+
+# Archives
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
