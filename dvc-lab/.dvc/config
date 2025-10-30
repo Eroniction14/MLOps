@@ -1,5 +1,0 @@
-[core]
-    remote = lab2
-['remote "lab2"']
-    url = gs://my-dvc-lab-bucket
-    credentialpath = ../lab2-creds.json
