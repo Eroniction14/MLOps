@@ -1,0 +1,45 @@
+stages:
+  data_cleaning:
+    cmd: python scripts/data_cleaning.py
+    deps:
+    - data/spotify_songs.csv
+    - scripts/data_cleaning.py
+    outs:
+    - data/spotify_cleaned.csv
+  feature_engineering:
+    cmd: python scripts/feature_engineering.py
+    deps:
+    - data/spotify_cleaned.csv
+    - scripts/feature_engineering.py
+    outs:
+    - data/spotify_featured.csv
+  train_model_v1:
+    cmd: python scripts/train_model_v1.py
+    deps:
+    - data/spotify_featured.csv
+    - scripts/train_model_v1.py
+    outs:
+    - models/metrics_v1.json
+    - models/spotify_model_v1.pkl
+  train_model_v2:
+    cmd: python scripts/train_model_v2.py
+    deps:
+    - data/spotify_featured.csv
+    - scripts/train_model_v2.py
+    outs:
+    - models/metrics_v2.json
+    - models/scaler_v2.pkl
+    - models/spotify_model_v2.pkl
+  compare_models:
+    cmd: python scripts/compare_models.py
+    deps:
+    - models/metrics_v1.json
+    - models/metrics_v2.json
+    - scripts/compare_models.py
+    outs:
+    - models/comparison.txt
+  view_results:
+    cmd: python scripts/view_results.py
+    deps:
+    - models/comparison.txt
+    - scripts/view_results.py

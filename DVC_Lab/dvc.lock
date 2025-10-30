@@ -1,0 +1,109 @@
+schema: '2.0'
+stages:
+  data_cleaning:
+    cmd: python scripts/data_cleaning.py
+    deps:
+    - path: data/spotify_songs.csv
+      hash: md5
+      md5: e50a70711e823b75c8ebe231468f5faf
+      size: 20118244
+    - path: scripts/data_cleaning.py
+      hash: md5
+      md5: 32576df9304c074e38fa0e39c243483a
+      size: 892
+    outs:
+    - path: data/spotify_cleaned.csv
+      hash: md5
+      md5: 6265e0661b5df0699c0958002035dc3f
+      size: 20232141
+  feature_engineering:
+    cmd: python scripts/feature_engineering.py
+    deps:
+    - path: data/spotify_cleaned.csv
+      hash: md5
+      md5: 6265e0661b5df0699c0958002035dc3f
+      size: 20232141
+    - path: scripts/feature_engineering.py
+      hash: md5
+      md5: 00e5c640d4d619e33b36a7d1c3b205a7
+      size: 1175
+    outs:
+    - path: data/spotify_featured.csv
+      hash: md5
+      md5: 896cfa51cc083a3442636f45d53ea887
+      size: 28166847
+  train_model_v1:
+    cmd: python scripts/train_model_v1.py
+    deps:
+    - path: data/spotify_featured.csv
+      hash: md5
+      md5: 896cfa51cc083a3442636f45d53ea887
+      size: 28166847
+    - path: scripts/train_model_v1.py
+      hash: md5
+      md5: 1a6396d2cf271050f103475ce64894e2
+      size: 1695
+    outs:
+    - path: models/metrics_v1.json
+      hash: md5
+      md5: 114d0b2ddf9e494c98722187b111c142
+      size: 461
+    - path: models/spotify_model_v1.pkl
+      hash: md5
+      md5: e88051c37a3ca73a0a2908173a5b9e48
+      size: 81636874
+  train_model_v2:
+    cmd: python scripts/train_model_v2.py
+    deps:
+    - path: data/spotify_featured.csv
+      hash: md5
+      md5: 896cfa51cc083a3442636f45d53ea887
+      size: 28166847
+    - path: scripts/train_model_v2.py
+      hash: md5
+      md5: 8bed4b80bb58ad61e93b376289f0b5db
+      size: 2022
+    outs:
+    - path: models/metrics_v2.json
+      hash: md5
+      md5: 12f8c41ad5950724eaf20cd12092686d
+      size: 506
+    - path: models/scaler_v2.pkl
+      hash: md5
+      md5: d004ce17c49fa4081979b439dcdd7fc2
+      size: 1052
+    - path: models/spotify_model_v2.pkl
+      hash: md5
+      md5: cd7095907cb3410313e623de6bf6db68
+      size: 222060047
+  compare_models:
+    cmd: python scripts/compare_models.py
+    deps:
+    - path: models/metrics_v1.json
+      hash: md5
+      md5: 114d0b2ddf9e494c98722187b111c142
+      size: 461
+    - path: models/metrics_v2.json
+      hash: md5
+      md5: 12f8c41ad5950724eaf20cd12092686d
+      size: 506
+    - path: scripts/compare_models.py
+      hash: md5
+      md5: 767dfea6d73351481840b5ff8ec31b84
+      size: 1070
+    outs:
+    - path: models/comparison.txt
+      hash: md5
+      md5: 569adee302fcc4fa074a211108b48d79
+      size: 118
+  view_results:
+    cmd: python scripts/view_results.py
+    deps:
+    - path: models/comparison.txt
+      hash: md5
+      md5: 569adee302fcc4fa074a211108b48d79
+      size: 118
+    - path: scripts/view_results.py
+      hash: md5
+      md5: 9695c09b70038efc59e25bcb6b2c206f
+      size: 882

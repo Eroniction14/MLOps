@@ -1,0 +1,5 @@
+[core]
+    remote = lab2
+['remote "lab2"']
+    url = gs://mlops_lab
+    credentialpath = ../mlops-476615-b41c3ac01bf8.json
